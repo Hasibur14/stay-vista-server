@@ -53,6 +53,7 @@ async function run() {
 
     const roomsCollection = client.db('stayVista').collection('rooms')
 
+
     // auth related api
     app.post('/jwt', async (req, res) => {
       const user = req.body
@@ -67,6 +68,7 @@ async function run() {
         })
         .send({ success: true })
     })
+
     // Logout
     app.get('/logout', async (req, res) => {
       try {
@@ -102,11 +104,6 @@ async function run() {
       const result = await roomsCollection.findOne(query)
       res.send(result)
     })
-
-
-
-
-
 
 
     await client.db("admin").command({ ping: 1 });
