@@ -85,10 +85,11 @@ async function run() {
       }
     })
 
+
+
     // Get all rooms in db
     app.get('/rooms', async (req, res) => {
       const category = req.query.category
-
       let query = {}
       if (category && category !== 'null') {
         query = { category: category }
@@ -96,6 +97,13 @@ async function run() {
       const result = await roomsCollection.find(query).toArray()
       res.send(result)
     })
+
+    //save a room in db
+    app.post('/room', async (req, res) => {
+      const roomData = res.body
+      const result = await roomsCollection.insertOne(roomData)
+    })
+
 
     // Get a single room in db
     app.get('/room/:id', async (req, res) => {
