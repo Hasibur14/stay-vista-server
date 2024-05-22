@@ -100,10 +100,10 @@ async function run() {
 
     //save a room in db
     app.post('/room', async (req, res) => {
-      const roomData = res.body
+      const roomData = req.body
       const result = await roomsCollection.insertOne(roomData)
+      res.send(result)
     })
-
 
     // Get a single room in db
     app.get('/room/:id', async (req, res) => {
@@ -112,6 +112,24 @@ async function run() {
       const result = await roomsCollection.findOne(query)
       res.send(result)
     })
+
+
+    // get all rooms for host
+    app.get('/my-listings/:email', async (req, res) => {
+      const email = req.params.email
+      let query = { 'host.email': email }
+      const result = await roomsCollection.find(query).toArray()
+      res.send(result)
+    })
+
+    //delete room
+    app.delete('/room/:id', async (req, res) => {
+      const id = req.params.id
+      const query = { _id: new ObjectId(id) }
+      const result = await roomsCollection.deleteOne(query)
+      res.send(result)
+    })
+
 
 
     await client.db("admin").command({ ping: 1 });
