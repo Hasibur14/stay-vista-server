@@ -133,6 +133,19 @@ async function run() {
       res.send(result);
     });
 
+    //update a user role
+    app.patch('/users/update/:email', async (req, res) => {
+      const email = req.params.email
+      const user = req.body
+      const query = { email }
+      const updateDoc = {
+        $set: { ...user, timestamp: Date.now() },
+      }
+      const result = await usersCollection.updateOne(query, updateDoc)
+      res.send(result)
+    })
+
+
 
     // Get all rooms in DB
     app.get('/rooms', async (req, res) => {
