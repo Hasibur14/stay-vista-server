@@ -83,31 +83,56 @@ async function run() {
       }
     });
 
-    // Save a user data in DB
+
+
+    // save a user data in db
     app.put('/user', async (req, res) => {
-      const user = req.body;
-      const query = { email: user?.email };
-      // Check if user already exists in DB
-      const isExist = await usersCollection.findOne(query);
+      const user = req.body
+
+      const query = { email: user?.email }
+      // check if user already exists in db
+      const isExist = await usersCollection.findOne(query)
       if (isExist) {
         if (user.status === 'Requested') {
-          // If existing user tries to change his role
+          // if existing user try to change his role
           const result = await usersCollection.updateOne(query, {
             $set: { status: user?.status },
-          });
-          return res.send(result);
+          })
+          return res.send(result)
         } else {
-          // If existing user logs in again
-          return res.send(isExist);
+          // if existing user login again
+          return res.send(isExist)
         }
       }
-    });
+
+      // save user for the first time
+      const options = { upsert: true }
+      const updateDoc = {
+        $set: {
+          ...user,
+          timestamp: Date.now(),
+        },
+      }
+      const result = await usersCollection.updateOne(query, updateDoc, options)
+      res.send(result)
+    })
+
+
+    // get a user info  email from db
+    app.get('/user/:email', async (req, res) => {
+      const email = req.params.email
+      const query = { email: email }
+      const result = await usersCollection.findOne(query)
+      res.send(result)
+    })
+
 
     // Get all user data from DB
     app.get('/users', async (req, res) => {
       const result = await usersCollection.find().toArray();
       res.send(result);
     });
+
 
     // Get all rooms in DB
     app.get('/rooms', async (req, res) => {
@@ -120,12 +145,14 @@ async function run() {
       res.send(result);
     });
 
+
     // Save a room in DB
     app.post('/room', async (req, res) => {
       const roomData = req.body;
       const result = await roomsCollection.insertOne(roomData);
       res.send(result);
     });
+
 
     // Get a single room in DB
     app.get('/room/:id', async (req, res) => {
@@ -135,6 +162,7 @@ async function run() {
       res.send(result);
     });
 
+
     // Get all rooms for host
     app.get('/my-listings/:email', async (req, res) => {
       const email = req.params.email;
@@ -142,6 +170,7 @@ async function run() {
       const result = await roomsCollection.find(query).toArray();
       res.send(result);
     });
+
 
     // Delete room
     app.delete('/room/:id', async (req, res) => {
