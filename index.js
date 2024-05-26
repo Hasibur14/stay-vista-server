@@ -22,7 +22,7 @@ app.use(cookieParser());
 // Verify Token Middleware
 const verifyToken = async (req, res, next) => {
   const token = req.cookies?.token;
-  console.log(token);
+ // console.log(token);
   if (!token) {
     return res.status(401).send({ message: 'unauthorized access' });
   }
@@ -51,6 +51,31 @@ async function run() {
   try {
     const roomsCollection = client.db('stayVista').collection('rooms');
     const usersCollection = client.db('stayVista').collection('users');
+
+
+    // verify admin middleware
+    const verifyAdmin = async (req, res, next) => {
+      const user = req.user
+      const query = { email: user?.email }
+      const result = await usersCollection.findOne(query)
+      if (!result || result?.role !== 'admin')
+        return res.status(401).send({ message: 'unauthorized access' })
+
+      next()
+    };
+
+    // verify host middleware
+    const verifyHost = async (req, res, next) => {
+      const user = req.user
+      const query = { email: user?.email }
+      const result = await usersCollection.findOne(query)
+      if (!result || result?.role !== 'host')
+        return res.status(401).send({ message: 'unauthorized access' })
+
+      next()
+    };
+
+
 
     // Auth related API
     app.post('/jwt', async (req, res) => {
@@ -84,6 +109,11 @@ async function run() {
     });
 
 
+    /**
+     * -------------------------------------------
+     *                  USERS RELATED API
+     * -------------------------------------------
+     */
 
     // save a user data in db
     app.put('/user', async (req, res) => {
@@ -128,7 +158,7 @@ async function run() {
 
 
     // Get all user data from DB
-    app.get('/users', async (req, res) => {
+    app.get('/users', verifyToken, verifyAdmin, async (req, res) => {
       const result = await usersCollection.find().toArray();
       res.send(result);
     });
@@ -146,6 +176,11 @@ async function run() {
     })
 
 
+    /**
+    * -------------------------------------------
+    *                  ROOMS RELATED API
+    * -------------------------------------------
+    */
 
     // Get all rooms in DB
     app.get('/rooms', async (req, res) => {
@@ -160,7 +195,7 @@ async function run() {
 
 
     // Save a room in DB
-    app.post('/room', async (req, res) => {
+    app.post('/room',verifyToken, verifyHost, async (req, res) => {
       const roomData = req.body;
       const result = await roomsCollection.insertOne(roomData);
       res.send(result);
@@ -177,7 +212,7 @@ async function run() {
 
 
     // Get all rooms for host
-    app.get('/my-listings/:email', async (req, res) => {
+    app.get('/my-listings/:email', verifyToken,verifyHost, async (req, res) => {
       const email = req.params.email;
       let query = { 'host.email': email };
       const result = await roomsCollection.find(query).toArray();
