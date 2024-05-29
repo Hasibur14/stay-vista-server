@@ -5,6 +5,7 @@ const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const { MongoClient, ServerApiVersion, ObjectId, Timestamp } = require('mongodb');
 const jwt = require('jsonwebtoken');
+const stripe = require("stripe")("process.env.STRIPE_SECRET_KEY")
 
 const port = process.env.PORT || 8000;
 
@@ -22,7 +23,7 @@ app.use(cookieParser());
 // Verify Token Middleware
 const verifyToken = async (req, res, next) => {
   const token = req.cookies?.token;
- // console.log(token);
+  // console.log(token);
   if (!token) {
     return res.status(401).send({ message: 'unauthorized access' });
   }
@@ -107,6 +108,29 @@ async function run() {
         res.status(500).send(err);
       }
     });
+
+/**
+     * -------------------------------------------
+     *              PAYMENT INTENT -STRIPE
+     * -------------------------------------------
+     */
+
+    //create-payment-intent
+    app.post('/create-payment-intent', verifyToken, async (req, res) => {
+      const price = req.body
+      const priceInCent = parseFloat(price) * 100
+      if (!price || priceInCent < 1) return
+      //generate clientSecret
+      const {client_secret} = await stripe.paymentIntents.create({
+        amount: calculateOrderAmount(items),
+        currency: "usd",
+        automatic_payment_methods: {
+          enabled: true,
+        },
+      })
+         res.send({clientSecret : client_secret})
+    })
+
 
 
     /**
@@ -195,7 +219,7 @@ async function run() {
 
 
     // Save a room in DB
-    app.post('/room',verifyToken, verifyHost, async (req, res) => {
+    app.post('/room', verifyToken, verifyHost, async (req, res) => {
       const roomData = req.body;
       const result = await roomsCollection.insertOne(roomData);
       res.send(result);
@@ -212,7 +236,7 @@ async function run() {
 
 
     // Get all rooms for host
-    app.get('/my-listings/:email', verifyToken,verifyHost, async (req, res) => {
+    app.get('/my-listings/:email', verifyToken, verifyHost, async (req, res) => {
       const email = req.params.email;
       let query = { 'host.email': email };
       const result = await roomsCollection.find(query).toArray();
